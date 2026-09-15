@@ -1,0 +1,27 @@
+表格 FB 悬浮播放 — 安装与使用
+
+一、安装
+1. 打开 Chrome，访问 chrome://extensions
+2. 打开右上角「开发者模式」
+3. 点「加载已解压的扩展程序」
+4. 选择本文件夹（sheets-fb-player）
+5. 刷新已经打开的 Google 表格页面
+
+更新后请点扩展卡片上的「刷新」，再刷新表格。
+
+二、使用
+- 用鼠标点选含有 Facebook / Reels 链接的单元格，右侧立刻弹出悬浮播放器
+- 也可以把鼠标悬停在表格里的蓝色链接上
+- 拖动播放器顶栏可移动，右下角可缩放
+- Alt + V：播放当前单元格
+- Esc：关闭悬浮窗
+- 点扩展图标可开关「选中播放 / 悬停播放 / 独立窗口」
+
+三、能识别的链接
+- facebook.com/reel/  或  /reels/
+- facebook.com/watch?v=
+- facebook.com/{主页ID}_{贴文ID}
+- facebook.com/.../videos/...
+- facebook.com/share/r/  或  /share/v/
+- fb.watch/...
+- =HYPERLINK("https://www.facebook.com/...")

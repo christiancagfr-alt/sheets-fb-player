@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>表格 FB 悬浮播放 — 本地预览</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+        background: #f1f3f4;
+        color: #202124;
+      }
+      .bar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 16px;
+        background: #fff;
+        border-bottom: 1px solid #dadce0;
+      }
+      .bar label {
+        color: #5f6368;
+        font-size: 13px;
+      }
+      #t-formula-bar-input-container {
+        flex: 1;
+      }
+      .cell-input {
+        min-height: 22px;
+        padding: 6px 8px;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        background: #fff;
+        font: 13px/1.4 Consolas, monospace;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 80px 1fr;
+        gap: 0;
+        margin: 24px;
+        background: #fff;
+        border: 1px solid #dadce0;
+      }
+      .cell {
+        padding: 10px 12px;
+        border: 1px solid #e0e0e0;
+        cursor: pointer;
+      }
+      .cell:hover {
+        background: #e8f0fe;
+      }
+      iframe {
+        width: 320px;
+        height: 568px;
+        border: 0;
+        margin: 24px;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <label>公式栏</label>
+      <div id="t-formula-bar-input-container">
+        <div class="cell-input" id="formula" contenteditable="true">
+          https://www.facebook.com/facebook/videos/10153231379946729/
+        </div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="cell">A1</div>
+      <div class="cell" data-url="https://www.facebook.com/reel/10153231379946729">
+        https://www.facebook.com/reel/10153231379946729
+      </div>
+      <div class="cell">A2</div>
+      <div class="cell">
+        <a href="https://fb.watch/abcDE12/">fb.watch 示例</a>
+      </div>
+      <div class="cell">A3</div>
+      <div class="cell">=HYPERLINK("https://www.facebook.com/watch/?v=10153231379946729","官方视频")</div>
+    </div>
+    <p style="margin: 0 24px; color: #5f6368; font-size: 13px">
+      下面是官方公开视频的嵌入预览（不经过扩展）。扩展安装后请到真实 Google 表格里试用。
+    </p>
+    <iframe
+      id="preview"
+      allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
+      allowfullscreen
+    ></iframe>
+    <script src="../src/urls.js"></script>
+    <script>
+      const api = window.FbSheetsPreview;
+      const info = api.classifyFacebookUrl(
+        "https://www.facebook.com/facebook/videos/10153231379946729/"
+      );
+      document.getElementById("preview").src = api.buildEmbedSrc(info, {});
+      document.getElementById("formula").addEventListener("input", function () {
+        const found = api.extractFacebookLinks(this.innerText);
+        document.title = found[0] ? found[0].kind + " " + found[0].url : "无 FB 链接";
+      });
+    </script>
+  </body>
+</html>

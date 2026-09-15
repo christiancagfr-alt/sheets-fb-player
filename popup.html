@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>表格 FB 悬浮播放</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <div class="logo">▶</div>
+      <div>
+        <h1>表格 FB 悬浮播放</h1>
+        <p>选中 Google 表格里的 Facebook / Reels 链接即可播放</p>
+      </div>
+    </header>
+
+    <label class="row">
+      <span>启用插件</span>
+      <input type="checkbox" id="enabled" />
+    </label>
+    <label class="row">
+      <span>选中单元格后自动播放</span>
+      <input type="checkbox" id="playOnSelect" />
+    </label>
+    <label class="row">
+      <span>悬停链接后自动播放</span>
+      <input type="checkbox" id="playOnHover" />
+    </label>
+    <label class="row">
+      <span>选中非 FB 单元格时关闭</span>
+      <input type="checkbox" id="closeOnOtherCell" />
+    </label>
+    <label class="row">
+      <span>播放方式</span>
+      <select id="playerMode">
+        <option value="overlay">表格内悬浮窗</option>
+        <option value="window">独立小窗口</option>
+      </select>
+    </label>
+    <label class="row">
+      <span>悬停延迟（毫秒）</span>
+      <input type="number" id="hoverDelayMs" min="0" max="2000" step="50" />
+    </label>
+
+    <footer>
+      快捷键 <kbd>Alt</kbd>+<kbd>V</kbd> 播放当前单元格 · <kbd>Esc</kbd> 关闭悬浮窗
+    </footer>
+    <script src="popup.js"></script>
+  </body>
+</html>

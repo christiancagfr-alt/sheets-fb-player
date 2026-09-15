@@ -1,0 +1,66 @@
+{
+  "manifest_version": 3,
+  "name": "表格 FB 悬浮播放",
+  "short_name": "FB 悬浮播放",
+  "version": "1.1.5",
+  "description": "在 Google 表格中选中或悬停 Facebook / Reels 链接时，悬浮播放视频。",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "表格 FB 悬浮播放",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": ["storage", "declarativeNetRequest"],
+  "host_permissions": [
+    "https://docs.google.com/spreadsheets/*",
+    "https://*.facebook.com/*",
+    "https://facebook.com/*",
+    "https://*.fb.com/*",
+    "https://fb.com/*",
+    "https://fb.watch/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/spreadsheets/*"],
+      "js": ["src/urls.js", "src/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "allow_facebook_embed",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/content.css", "player.html", "src/urls.js", "player.js"],
+      "matches": ["https://docs.google.com/*"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://www.facebook.com https://web.facebook.com https://facebook.com https://m.facebook.com;"
+  },
+  "commands": {
+    "play-current-cell": {
+      "suggested_key": {
+        "default": "Alt+V"
+      },
+      "description": "播放当前单元格里的 Facebook 链接"
+    }
+  }
+}

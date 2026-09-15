@@ -1,0 +1,91 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 320px;
+  margin: 0;
+  padding: 14px;
+  background: #1c1e21;
+  color: #e4e6eb;
+  font: 13px/1.45 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: #0866ff;
+  color: #fff;
+  font-size: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 14px;
+}
+
+header p {
+  margin: 2px 0 0;
+  color: #b0b3b8;
+  font-size: 11px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+span {
+  flex: 1 1 auto;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0866ff;
+}
+
+select,
+input[type="number"] {
+  width: 132px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: #242526;
+  color: #e4e6eb;
+  padding: 0 8px;
+}
+
+footer {
+  margin-top: 10px;
+  color: #b0b3b8;
+  font-size: 11px;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #3a3b3c;
+  font-size: 11px;
+}

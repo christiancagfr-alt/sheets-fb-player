@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FB 悬浮播放</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #1c1e21;
+        color: #e4e6eb;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      .wrap {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 42px;
+        padding: 0 10px;
+        background: #242526;
+        user-select: none;
+      }
+      .badge {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #0866ff;
+        font-size: 12px;
+        font-weight: 650;
+      }
+      .title {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 12px;
+        color: #b0b3b8;
+      }
+      button {
+        height: 28px;
+        border: 0;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #e4e6eb;
+        cursor: pointer;
+        padding: 0 8px;
+      }
+      button:hover,
+      button.is-on {
+        background: rgba(255, 255, 255, 0.16);
+      }
+      iframe {
+        flex: 1;
+        width: 100%;
+        border: 0;
+        background: #000;
+      }
+      footer {
+        padding: 6px 10px 8px;
+        font-size: 11px;
+        color: #b0b3b8;
+        background: #242526;
+      }
+      a {
+        color: #e4e6eb;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <span class="badge" id="badge">视频</span>
+        <span class="title" id="title">Facebook</span>
+        <button type="button" id="kindBtn">页面播放</button>
+        <button type="button" id="verticalBtn">竖/横</button>
+        <button type="button" id="openBtn">打开</button>
+      </header>
+      <iframe
+        id="frame"
+        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
+        allowfullscreen
+      ></iframe>
+      <footer>
+        <a id="url" target="_blank" rel="noopener noreferrer"></a>
+      </footer>
+    </div>
+    <script src="src/urls.js"></script>
+    <script src="player.js"></script>
+  </body>
+</html>
