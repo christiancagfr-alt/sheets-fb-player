@@ -15,6 +15,19 @@
       </div>
     </header>
 
+    <div id="updateBanner" class="update-banner hidden">
+      <div>
+        <strong>发现新版本 <span id="latestVersionLabel"></span></strong>
+        <p>当前 <span id="currentVersionLabel"></span> · 下载后解压覆盖原文件夹，再点刷新</p>
+      </div>
+      <button type="button" id="downloadUpdate">下载更新</button>
+    </div>
+    <div class="row version-row">
+      <span>当前版本 <em id="installedVersion"></em></span>
+      <button type="button" class="linkish" id="checkUpdate">检查更新</button>
+    </div>
+    <p id="updateHint" class="hint"></p>
+
     <label class="row">
       <span>启用插件</span>
       <input type="checkbox" id="enabled" />
@@ -41,6 +54,14 @@
     <label class="row">
       <span>悬停延迟（毫秒）</span>
       <input type="number" id="hoverDelayMs" min="0" max="2000" step="50" />
+    </label>
+    <label class="row">
+      <span>自动检查更新</span>
+      <input type="checkbox" id="autoUpdateCheck" />
+    </label>
+    <label class="row">
+      <span>发现新版本时自动下载</span>
+      <input type="checkbox" id="autoDownloadUpdate" />
     </label>
 
     <footer>

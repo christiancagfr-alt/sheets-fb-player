@@ -74,6 +74,57 @@ input[type="number"] {
   padding: 0 8px;
 }
 
+.update-banner {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #3a1d24;
+  color: #e4e6eb;
+}
+
+.update-banner p {
+  margin: 4px 0 0;
+  color: #b0b3b8;
+  font-size: 11px;
+}
+
+.update-banner button,
+.linkish {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: #0866ff;
+  color: #fff;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.linkish {
+  background: transparent;
+  color: #86b7fe;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.version-row em {
+  font-style: normal;
+  color: #b0b3b8;
+}
+
+.hint {
+  margin: 0 0 8px;
+  color: #b0b3b8;
+  font-size: 11px;
+  min-height: 16px;
+}
+
 footer {
   margin-top: 10px;
   color: #b0b3b8;

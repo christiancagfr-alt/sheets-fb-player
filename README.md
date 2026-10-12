@@ -13,6 +13,7 @@ Chrome 扩展：在 **Google 表格** 里用鼠标选中（或悬停）Facebook�
 - 可改成独立小窗口播放（扩展图标设置）
 - 快捷键 `Alt + V` 播放当前单元格，`Esc` 关闭
 - 使用各平台官方嵌入播放器，不下载、不破解视频
+- 自动检查 GitHub Release：有新版本时通知、角标提示，并可自动下载官方 zip
 
 支持常见链接：
 
@@ -42,7 +43,7 @@ Chrome 顶部可能出现开发者模式提示条，这是「加载已解压扩�
 下载后，可使用 GitHub CLI 验证文件来源：
 
 ```bash
-gh attestation verify ./sheets-fb-player-v1.2.1.zip --repo christiancagfr-alt/sheets-fb-player
+gh attestation verify ./sheets-fb-player-v1.3.0.zip --repo christiancagfr-alt/sheets-fb-player
 ```
 
 验证成功表示该软件确实由官方 CI 构建。
@@ -59,7 +60,21 @@ gh attestation verify ./sheets-fb-player-v1.2.1.zip --repo christiancagfr-alt/sh
 | `Esc` | 关闭悬浮窗 |
 | 顶栏 📌 | 固定窗口，换单元格也不关 |
 | 顶栏 ▯ | 竖屏 / 横屏 |
-| 扩展图标 | 开关、悬停、独立窗口等设置 |
+| 扩展图标 | 开关、悬停、独立窗口、检查更新 |
+
+## 自动更新
+
+扩展从 GitHub Releases 检查新版本（仓库 `christiancagfr-alt/sheets-fb-player`）。
+
+Chrome 对「加载已解压的扩展」不会自己覆盖文件，所以更新流程是：
+
+1. 后台每 3 小时检查一次（也可在弹窗里点「检查更新」）
+2. 发现新版本后，图标出现「新」，并弹出通知
+3. 默认自动下载 `sheets-fb-player-vX.Y.Z.zip` 到浏览器「下载」文件夹（只接受 GitHub Actions 发布的官方包）
+4. 解压后**覆盖原来加载扩展的那个文件夹**
+5. 点通知或弹窗进入安装说明页，再点「重新加载扩展」
+
+对方需要先手动装上 **v1.3.0 或更高**，之后你再发版才会自动提示。可在弹窗里关闭「自动检查更新」或「发现新版本时自动下载」。
 
 ## 播放限制
 
@@ -90,13 +105,13 @@ git push origin main
 版本号格式为 `v主版本.次版本.修订版本`，例如 `v1.0.0`、`v1.1.0`、`v2.0.0`。
 
 ```bash
-git tag -a v1.2.1 -m "Release version 1.2.1"
+git tag -a v1.3.0 -m "Release version 1.3.0"
 ```
 
 #### 3. 推送 Tag 触发自动构建
 
 ```bash
-git push origin v1.2.1
+git push origin v1.3.0
 ```
 
 推送后，GitHub Actions 会自动：
@@ -125,10 +140,10 @@ git push origin v1.2.1
 3. 删除失败的 tag 并重新创建：
 
 ```bash
-git tag -d v1.2.1
-git push origin :refs/tags/v1.2.1
-git tag -a v1.2.1 -m "Release version 1.2.1"
-git push origin v1.2.1
+git tag -d v1.3.0
+git push origin :refs/tags/v1.3.0
+git tag -a v1.3.0 -m "Release version 1.3.0"
+git push origin v1.3.0
 ```
 
 ## 本地开发

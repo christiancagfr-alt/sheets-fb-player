@@ -5,16 +5,31 @@ const DEFAULTS = {
   hoverDelayMs: 450,
   closeOnOtherCell: true,
   playerMode: "overlay",
+  autoUpdateCheck: true,
+  autoDownloadUpdate: true,
 };
 
 importScripts("src/urls.js");
+importScripts("src/update.js");
 const api = self.FbSheetsPreview;
+const updater = self.FbSheetsUpdate;
 const resolveCache = Object.create(null);
+const UPDATE_ALARM = "check-update";
+const checkingUpdate = { running: false };
 
 chrome.runtime.onInstalled.addListener(function () {
   chrome.storage.sync.get(DEFAULTS, function (stored) {
     chrome.storage.sync.set(Object.assign({}, DEFAULTS, stored || {}));
   });
+  ensureUpdateAlarm();
+  setTimeout(function () {
+    checkForUpdate(false);
+  }, 2500);
+});
+
+chrome.runtime.onStartup.addListener(function () {
+  ensureUpdateAlarm();
+  checkForUpdate(false);
 });
 
 function senderIsTrusted(sender) {
@@ -163,7 +178,174 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     chrome.storage.sync.get(DEFAULTS, sendResponse);
     return true;
   }
+
+  if (message.type === "get-update-status") {
+    getUpdateStatus().then(function (status) {
+      sendResponse({ ok: true, status: status });
+    });
+    return true;
+  }
+
+  if (message.type === "check-for-update") {
+    checkForUpdate(true)
+      .then(function (status) {
+        sendResponse({ ok: true, status: status });
+      })
+      .catch(function () {
+        sendResponse({ ok: false, status: null });
+      });
+    return true;
+  }
+
+  if (message.type === "download-update") {
+    downloadStoredUpdate(true)
+      .then(function (result) {
+        sendResponse(result);
+      })
+      .catch(function () {
+        sendResponse({ ok: false });
+      });
+    return true;
+  }
+
+  if (message.type === "reload-extension") {
+    sendResponse({ ok: true });
+    setTimeout(function () {
+      chrome.runtime.reload();
+    }, 50);
+    return true;
+  }
 });
+
+function ensureUpdateAlarm() {
+  chrome.alarms.get(UPDATE_ALARM, function (alarm) {
+    if (!alarm) {
+      chrome.alarms.create(UPDATE_ALARM, { delayInMinutes: 1, periodInMinutes: 180 });
+    }
+  });
+}
+
+function currentVersion() {
+  return chrome.runtime.getManifest().version;
+}
+
+function emptyStatus() {
+  return {
+    currentVersion: currentVersion(),
+    latestVersion: "",
+    tag: "",
+    zipUrl: "",
+    releaseUrl: "",
+    hasUpdate: false,
+    checkedAt: 0,
+  };
+}
+
+function getUpdateStatus() {
+  return chrome.storage.local.get({ updateStatus: emptyStatus() }).then(function (stored) {
+    var status = Object.assign(emptyStatus(), stored.updateStatus || {});
+    status.currentVersion = currentVersion();
+    status.hasUpdate = !!(status.latestVersion && updater.isNewerVersion(status.latestVersion, status.currentVersion));
+    if (!status.hasUpdate) {
+      chrome.action.setBadgeText({ text: "" });
+    }
+    return status;
+  });
+}
+
+function setBadge(hasUpdate) {
+  chrome.action.setBadgeBackgroundColor({ color: "#e41e3f" });
+  chrome.action.setBadgeText({ text: hasUpdate ? "新" : "" });
+}
+
+function notifyUpdate(status) {
+  chrome.notifications.create("sheets-fb-update-" + status.tag, {
+    type: "basic",
+    iconUrl: "icons/icon128.png",
+    title: "表格视频悬浮播放 有新版本",
+    message: "已发现 " + status.tag + "。点此查看安装步骤，或打开扩展图标下载。",
+    priority: 1,
+  });
+}
+
+function downloadStoredUpdate(openGuide) {
+  return getUpdateStatus().then(function (status) {
+    if (!status.hasUpdate || !updater.isAllowedZipUrl(status.zipUrl, status.tag)) {
+      return { ok: false, error: "no-update" };
+    }
+    return chrome.downloads
+      .download({
+        url: status.zipUrl,
+        filename: updater.zipNameForTag(status.tag),
+        conflictAction: "uniquify",
+        saveAs: false,
+      })
+      .then(function () {
+        chrome.storage.local.set({ downloadedVersion: status.latestVersion });
+        if (openGuide) chrome.tabs.create({ url: chrome.runtime.getURL("update.html") });
+        return { ok: true, status: status };
+      });
+  });
+}
+
+async function checkForUpdate(force) {
+  if (checkingUpdate.running) return getUpdateStatus();
+  checkingUpdate.running = true;
+  try {
+    var settings = await chrome.storage.sync.get(DEFAULTS);
+    if (!force && settings.autoUpdateCheck === false) {
+      return getUpdateStatus();
+    }
+    var current = currentVersion();
+    var response = await fetch(updater.latestApiUrl(), {
+      credentials: "omit",
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+    if (!response.ok) return getUpdateStatus();
+    var release = await response.json();
+    var picked = updater.pickReleaseAsset(release);
+    var status = emptyStatus();
+    status.checkedAt = Date.now();
+    if (picked && updater.isNewerVersion(picked.version, current)) {
+      status.latestVersion = picked.version;
+      status.tag = picked.tag;
+      status.zipUrl = picked.zipUrl;
+      status.releaseUrl = picked.releaseUrl;
+      status.hasUpdate = true;
+    }
+    await chrome.storage.local.set({ updateStatus: status });
+    setBadge(status.hasUpdate);
+    if (status.hasUpdate) {
+      var flags = await chrome.storage.local.get({ notifiedVersion: "", downloadedVersion: "" });
+      if (flags.notifiedVersion !== status.latestVersion) {
+        notifyUpdate(status);
+        await chrome.storage.local.set({ notifiedVersion: status.latestVersion });
+      }
+      if (settings.autoDownloadUpdate !== false && flags.downloadedVersion !== status.latestVersion) {
+        await downloadStoredUpdate(false);
+      }
+    }
+    return status;
+  } catch (err) {
+    return getUpdateStatus();
+  } finally {
+    checkingUpdate.running = false;
+  }
+}
+
+chrome.alarms.onAlarm.addListener(function (alarm) {
+  if (alarm && alarm.name === UPDATE_ALARM) checkForUpdate(false);
+});
+
+chrome.notifications.onClicked.addListener(function (id) {
+  if (String(id).indexOf("sheets-fb-update-") !== 0) return;
+  chrome.tabs.create({ url: chrome.runtime.getURL("update.html") });
+});
+
+ensureUpdateAlarm();
 
 chrome.commands.onCommand.addListener(function (command) {
   if (command !== "play-current-cell") return;

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>安装新版本</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #1c1e21;
+        color: #e4e6eb;
+        font: 14px/1.55 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      .wrap {
+        max-width: 520px;
+        margin: 48px auto;
+        padding: 0 20px 40px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+      }
+      .ver {
+        color: #b0b3b8;
+        margin-bottom: 20px;
+      }
+      ol {
+        padding-left: 20px;
+      }
+      li {
+        margin: 10px 0;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 24px;
+      }
+      button,
+      a.btn {
+        display: inline-flex;
+        align-items: center;
+        height: 36px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 8px;
+        background: #0866ff;
+        color: #fff;
+        text-decoration: none;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      button.secondary,
+      a.secondary {
+        background: #3a3b3c;
+      }
+      .hint {
+        margin-top: 16px;
+        color: #b0b3b8;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>安装新版本</h1>
+      <p class="ver" id="summary">正在检查版本…</p>
+      <ol>
+        <li>安装包已下载到浏览器的「下载」文件夹（或点下面按钮重新下载）。</li>
+        <li>解压 zip，把里面的文件<strong>覆盖</strong>到当初「加载已解压的扩展程序」所选的那个文件夹。</li>
+        <li>覆盖完成后点「重新加载扩展」。不要换到新文件夹，否则需要在 chrome://extensions 里重新加载。</li>
+      </ol>
+      <div class="actions">
+        <button type="button" id="downloadBtn">重新下载安装包</button>
+        <button type="button" class="secondary" id="reloadBtn">重新加载扩展</button>
+        <a class="btn secondary" id="releaseLink" href="#" target="_blank" rel="noopener noreferrer">打开 Release 页面</a>
+      </div>
+      <p class="hint">只会下载 GitHub Actions 发布的官方 zip，不会远程执行代码。</p>
+    </div>
+    <script src="update-page.js"></script>
+  </body>
+</html>

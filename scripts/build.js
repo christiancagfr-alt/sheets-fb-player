@@ -12,6 +12,8 @@ const files = [
   "popup.html",
   "popup.css",
   "popup.js",
+  "update.html",
+  "update-page.js",
   "rules.json",
   "README.md",
   "使用说明.txt",
