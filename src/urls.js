@@ -1,5 +1,5 @@
 /**
- * Facebook / Reels URL detection and embed helpers.
+ * Facebook / Instagram / YouTube URL detection and embed helpers.
  * Works in Chrome content scripts and in Node tests.
  */
 (function (root, factory) {
@@ -41,6 +41,18 @@
     ref_page: 1,
     _ft_: 1,
     dti: 1,
+    igsh: 1,
+    igshid: 1,
+    img_index: 1,
+    utm_source: 1,
+    utm_medium: 1,
+    utm_campaign: 1,
+    utm_content: 1,
+    utm_term: 1,
+    si: 1,
+    feature: 1,
+    app: 1,
+    pp: 1,
   };
 
   var KEEP_PARAMS = {
@@ -49,6 +61,8 @@
     story_fbid: 1,
     fbid: 1,
     video_id: 1,
+    t: 1,
+    start: 1,
   };
 
   var FB_HOST_RE =
@@ -61,6 +75,17 @@
     /(?:^|[\s"'=(（])((?:www\.)?facebook\.com\/[^\s<>"'）】\]]+)/gi;
 
   var FB_WATCH_RE = /(?:https?:\/\/)?fb\.watch\/[A-Za-z0-9_\-]+\/?/gi;
+
+  var MEDIA_URL_RE =
+    /https?:\/\/(?:www\.|m\.|web\.|mbasic\.|lm\.|l\.|music\.)?(?:facebook\.com|fb\.com|fb\.watch|instagram\.com|instagr\.am|youtube\.com|youtu\.be|youtube-nocookie\.com)\/[^\s<>"'）】\]]+/gi;
+
+  var BARE_MEDIA_RE =
+    /(?:^|[\s"'=(（])((?:www\.)?(?:facebook\.com|instagram\.com|youtube\.com|youtu\.be)\/[^\s<>"'）】\]]+)/gi;
+
+  var YT_BARE_RE = /(?:https?:\/\/)?(?:youtu\.be\/[A-Za-z0-9_-]{11}|youtube\.com\/(?:watch\?v=|shorts\/|embed\/|live\/)[A-Za-z0-9_-]{11})[^\s<>"'）】\]]*/gi;
+
+  var IG_BARE_RE =
+    /(?:https?:\/\/)?(?:www\.)?instagram\.com\/(?:reel|reels|p|tv)\/[A-Za-z0-9_-]+[^\s<>"'）】\]]*/gi;
 
   var HYPERLINK_RE = /HYPERLINK\s*\(\s*["']([^"']+)["']/i;
 
@@ -104,6 +129,27 @@
     );
   }
 
+  function isInstagramHost(hostname) {
+    if (!hostname) return false;
+    var host = String(hostname).toLowerCase().replace(/^www\./, "");
+    return host === "instagram.com" || host === "instagr.am" || host.endsWith(".instagram.com");
+  }
+
+  function isYouTubeHost(hostname) {
+    if (!hostname) return false;
+    var host = String(hostname).toLowerCase().replace(/^www\./, "");
+    return (
+      host === "youtube.com" ||
+      host === "m.youtube.com" ||
+      host === "music.youtube.com" ||
+      host === "youtu.be" ||
+      host === "youtube-nocookie.com" ||
+      host.endsWith(".youtube.com") ||
+      host.endsWith(".youtu.be") ||
+      host.endsWith(".youtube-nocookie.com")
+    );
+  }
+
   function isFacebookUrl(value) {
     try {
       var url = new URL(normalizeCandidate(value));
@@ -117,36 +163,73 @@
     var text = stripTrailingPunct(decodeSafe(raw));
     if (!text) return "";
     if (text.startsWith("//")) text = "https:" + text;
-    if (/^(?:www\.)?(facebook\.com|fb\.com|fb\.watch)\//i.test(text)) {
+    if (
+      /^(?:www\.)?(facebook\.com|fb\.com|fb\.watch|instagram\.com|instagr\.am|youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(
+        text
+      )
+    ) {
       text = "https://" + text.replace(/^https?:\/\//i, "");
     }
     return text;
   }
 
-  function unwrapFacebookRedirect(raw) {
+  function unwrapRedirect(raw) {
     var text = normalizeCandidate(raw);
     if (!text) return "";
     try {
       var url = new URL(text);
-      if (!isFacebookHost(url.hostname)) return text;
+      var host = url.hostname.toLowerCase().replace(/^www\./, "");
 
-      if (url.pathname === "/l.php" || url.pathname === "/l.php/") {
-        var nested = url.searchParams.get("u");
-        if (nested) return unwrapFacebookRedirect(nested);
+      if (isFacebookHost(url.hostname)) {
+        if (url.pathname === "/l.php" || url.pathname === "/l.php/") {
+          var nested = url.searchParams.get("u");
+          if (nested) return unwrapRedirect(nested);
+        }
+        var next = url.searchParams.get("next");
+        if (url.pathname.indexOf("login") !== -1 && next) {
+          return unwrapRedirect(next);
+        }
       }
 
-      var next = url.searchParams.get("next");
-      if (url.pathname.indexOf("login") !== -1 && next && /facebook\.com|fb\.watch/i.test(next)) {
-        return unwrapFacebookRedirect(next);
+      if (isInstagramHost(url.hostname) && (host === "l.instagram.com" || url.pathname === "/l.php")) {
+        var igNested = url.searchParams.get("u");
+        if (igNested) return unwrapRedirect(igNested);
       }
+
+      if (
+        (host === "google.com" || host.endsWith(".google.com")) &&
+        (url.pathname === "/url" || url.pathname === "/url/")
+      ) {
+        var gq = url.searchParams.get("q") || url.searchParams.get("url");
+        if (gq) return unwrapRedirect(gq);
+      }
+
       return url.toString();
     } catch (err) {
       return text;
     }
   }
 
+  function unwrapFacebookRedirect(raw) {
+    return unwrapRedirect(raw);
+  }
+
+  function stripTracking(url) {
+    url.hash = "";
+    url.searchParams.forEach(function (_value, key) {
+      var lower = key.toLowerCase();
+      if (KEEP_PARAMS[lower]) return;
+      if (TRACKING_PARAMS[lower] || lower.indexOf("_nc_") === 0 || lower.indexOf("__") === 0 || lower.indexOf("utm_") === 0) {
+        url.searchParams.delete(key);
+      }
+    });
+    var href = url.toString();
+    if (href.endsWith("?")) href = href.slice(0, -1);
+    return href;
+  }
+
   function canonicalizeFacebookUrl(raw) {
-    var unwrapped = unwrapFacebookRedirect(raw);
+    var unwrapped = unwrapRedirect(raw);
     if (!unwrapped) return "";
     var url;
     try {
@@ -163,26 +246,25 @@
       return "https://fb.watch/" + code + "/";
     }
 
-    if (host === "fb.com" || host === "www.fb.com" || host === "m.facebook.com" ||
-        host === "web.facebook.com" || host === "mbasic.facebook.com" ||
-        host === "lm.facebook.com" || host === "l.facebook.com") {
+    if (
+      host === "fb.com" ||
+      host === "www.fb.com" ||
+      host === "m.facebook.com" ||
+      host === "web.facebook.com" ||
+      host === "mbasic.facebook.com" ||
+      host === "lm.facebook.com" ||
+      host === "l.facebook.com"
+    ) {
       url.hostname = "www.facebook.com";
     } else if (host === "facebook.com") {
       url.hostname = "www.facebook.com";
     }
 
-    url.hash = "";
-    url.searchParams.forEach(function (_value, key) {
-      var lower = key.toLowerCase();
-      if (KEEP_PARAMS[lower]) return;
-      if (TRACKING_PARAMS[lower] || lower.indexOf("_nc_") === 0 || lower.indexOf("__") === 0) {
-        url.searchParams.delete(key);
-      }
-    });
+    return stripTracking(url);
+  }
 
-    var href = url.toString();
-    if (href.endsWith("?")) href = href.slice(0, -1);
-    return href;
+  function fbInfo(urlStr, extra) {
+    return Object.assign({ url: urlStr, platform: "facebook" }, extra);
   }
 
   function classifyFacebookUrl(raw) {
@@ -193,43 +275,193 @@
     var host = url.hostname.toLowerCase();
 
     if (host === "fb.watch" || host === "www.fb.watch") {
-      return { url: urlStr, kind: "reel", label: "Reels", vertical: true, needsResolve: true };
+      return fbInfo(urlStr, { kind: "reel", label: "Reels", vertical: true, needsResolve: true });
     }
     if (/\/(?:reel|reels)\//.test(path) || /\/share\/r\//.test(path)) {
-      return { url: urlStr, kind: "reel", label: "Reels", vertical: true };
+      return fbInfo(urlStr, { kind: "reel", label: "Reels", vertical: true });
     }
     if (/\/share\/v\//.test(path) || /\/videos?\//.test(path) || path.indexOf("/video.php") === 0) {
-      return { url: urlStr, kind: "video", label: "视频", vertical: false };
+      return fbInfo(urlStr, { kind: "video", label: "视频", vertical: false });
     }
     if (path === "/watch" || path === "/watch/" || path.indexOf("/watch/") === 0) {
-      return { url: urlStr, kind: "video", label: "视频", vertical: false };
+      return fbInfo(urlStr, { kind: "video", label: "视频", vertical: false });
     }
     if (/\/share\//.test(path)) {
-      return { url: urlStr, kind: "reel", label: "分享", vertical: true, needsResolve: true };
+      return fbInfo(urlStr, { kind: "reel", label: "分享", vertical: true, needsResolve: true });
     }
     var extracted = extractVideoId(urlStr);
     if (extracted && extracted.type === "compound") {
-      return {
-        url: urlStr,
+      return fbInfo(urlStr, {
         kind: "reel",
         label: "Reels",
         vertical: true,
         needsResolve: true,
-      };
+      });
     }
     if (extracted && extracted.type === "reel") {
-      return { url: urlStr, kind: "reel", label: "Reels", vertical: true };
+      return fbInfo(urlStr, { kind: "reel", label: "Reels", vertical: true });
     }
     if (extracted) {
-      return { url: urlStr, kind: "video", label: "视频", vertical: false };
+      return fbInfo(urlStr, { kind: "video", label: "视频", vertical: false });
     }
-    return {
-      url: urlStr,
+    return fbInfo(urlStr, {
       kind: "video",
       label: "视频",
       vertical: /reel|share|watch/i.test(path),
       needsResolve: true,
+    });
+  }
+
+  function isYouTubeId(id) {
+    return /^[A-Za-z0-9_-]{11}$/.test(id || "");
+  }
+
+  function parseYouTubeStart(url) {
+    var t = url.searchParams.get("t") || url.searchParams.get("start") || url.searchParams.get("time_continue");
+    if (!t) {
+      var hash = String(url.hash || "").replace(/^#/, "");
+      var hm = hash.match(/(?:^|&)t=([^&]+)/);
+      if (hm) t = hm[1];
+    }
+    if (!t) return 0;
+    if (/^\d+$/.test(t)) return Number(t);
+    var total = 0;
+    var matched = false;
+    var h = t.match(/(\d+)h/i);
+    var m = t.match(/(\d+)m/i);
+    var s = t.match(/(\d+)s/i);
+    if (h) {
+      total += Number(h[1]) * 3600;
+      matched = true;
+    }
+    if (m) {
+      total += Number(m[1]) * 60;
+      matched = true;
+    }
+    if (s) {
+      total += Number(s[1]);
+      matched = true;
+    }
+    return matched ? total : 0;
+  }
+
+  function classifyYouTubeUrl(raw) {
+    var text = unwrapRedirect(raw);
+    if (!text) return null;
+    var url;
+    try {
+      url = new URL(normalizeCandidate(text));
+    } catch (err) {
+      return null;
+    }
+    if (!isYouTubeHost(url.hostname)) return null;
+
+    var host = url.hostname.toLowerCase().replace(/^www\./, "");
+    var path = url.pathname;
+    var id = "";
+    var kind = "video";
+    var label = "YouTube";
+    var vertical = false;
+
+    if (host === "youtu.be") {
+      id = path.replace(/^\//, "").split("/")[0];
+    } else {
+      var shorts = path.match(/\/shorts\/([A-Za-z0-9_-]{11})/i);
+      if (shorts) {
+        id = shorts[1];
+        kind = "short";
+        label = "Shorts";
+        vertical = true;
+      }
+      if (!id) {
+        var embed = path.match(/\/(?:embed|v|live)\/([A-Za-z0-9_-]{11})/i);
+        if (embed) id = embed[1];
+      }
+      if (!id) {
+        var queryId = url.searchParams.get("v");
+        if (isYouTubeId(queryId)) id = queryId;
+      }
+    }
+    if (!isYouTubeId(id)) return null;
+
+    var start = parseYouTubeStart(url);
+    var canonical = "https://www.youtube.com/watch?v=" + id;
+    if (kind === "short") canonical = "https://www.youtube.com/shorts/" + id;
+    if (start) canonical += (canonical.indexOf("?") === -1 ? "?" : "&") + "t=" + start;
+
+    return {
+      url: canonical,
+      originalUrl: text,
+      platform: "youtube",
+      kind: kind,
+      label: label,
+      vertical: vertical,
+      videoId: id,
+      start: start || 0,
     };
+  }
+
+  function classifyInstagramUrl(raw) {
+    var text = unwrapRedirect(raw);
+    if (!text) return null;
+    var url;
+    try {
+      url = new URL(normalizeCandidate(text));
+    } catch (err) {
+      return null;
+    }
+    if (!isInstagramHost(url.hostname)) return null;
+
+    var path = url.pathname;
+    var shortcode = "";
+    var kind = "post";
+    var match = path.match(/\/(?:reel|reels)\/([A-Za-z0-9_-]{5,})/i);
+    if (match) {
+      shortcode = match[1];
+      kind = "reel";
+    }
+    if (!shortcode) {
+      match = path.match(/\/tv\/([A-Za-z0-9_-]{5,})/i);
+      if (match) {
+        shortcode = match[1];
+        kind = "tv";
+      }
+    }
+    if (!shortcode) {
+      match = path.match(/\/p\/([A-Za-z0-9_-]{5,})/i);
+      if (match) {
+        shortcode = match[1];
+        kind = "post";
+      }
+    }
+    if (!shortcode) {
+      match = path.match(/\/share\/(reel|p|tv)\/([A-Za-z0-9_-]{5,})/i);
+      if (match) {
+        shortcode = match[2];
+        kind = match[1].toLowerCase() === "reel" ? "reel" : match[1].toLowerCase() === "tv" ? "tv" : "post";
+      }
+    }
+    if (!shortcode) return null;
+
+    var pathKind = kind === "reel" ? "reel" : kind === "tv" ? "tv" : "p";
+    var canonical = "https://www.instagram.com/" + pathKind + "/" + shortcode + "/";
+    return {
+      url: canonical,
+      originalUrl: text,
+      platform: "instagram",
+      kind: kind,
+      label: kind === "reel" ? "IG Reels" : kind === "tv" ? "IGTV" : "Instagram",
+      vertical: kind === "reel",
+      shortcode: shortcode,
+    };
+  }
+
+  function classifyUrl(raw) {
+    var yt = classifyYouTubeUrl(raw);
+    if (yt) return yt;
+    var ig = classifyInstagramUrl(raw);
+    if (ig) return ig;
+    return classifyFacebookUrl(raw);
   }
 
   function extractVideoId(raw) {
@@ -273,8 +505,9 @@
   }
 
   function needsResolve(raw) {
-    var info = typeof raw === "object" && raw ? raw : classifyFacebookUrl(raw);
+    var info = typeof raw === "object" && raw ? raw : classifyUrl(raw);
     if (!info) return false;
+    if (info.platform && info.platform !== "facebook") return false;
     if (info.needsResolve) return true;
     if (/fb\.watch/i.test(info.url) || /\/share\//i.test(info.url)) return true;
     var extracted = extractVideoId(info.url);
@@ -284,6 +517,17 @@
 
   function embedHref(info) {
     if (!info || !info.url) return "";
+    if (info.platform === "youtube") {
+      if (info.videoId) {
+        var href = "https://www.youtube.com/watch?v=" + info.videoId;
+        if (info.start) href += "&t=" + info.start;
+        return href;
+      }
+      return info.url;
+    }
+    if (info.platform === "instagram") {
+      return info.url;
+    }
     var extracted = extractVideoId(info.url);
     if (extracted && extracted.type === "compound") return "";
     if (extracted) return toCanonicalVideoUrl(extracted);
@@ -294,7 +538,7 @@
   }
 
   function pageHref(info) {
-    return embedHref(info);
+    return embedHref(info) || (info && info.url) || "";
   }
 
   function matchMeta(html, property) {
@@ -415,8 +659,8 @@
     }
   }
 
-  function pushUnique(list, seen, raw) {
-    var info = classifyFacebookUrl(raw);
+  function pushUnique(list, seen, raw, classifier) {
+    var info = (classifier || classifyFacebookUrl)(raw);
     if (!info || seen[info.url]) return;
     seen[info.url] = true;
     list.push(info);
@@ -455,8 +699,58 @@
     return found;
   }
 
+  function extractMediaLinks(text, extraUrls) {
+    var source = String(text || "");
+    var found = [];
+    var seen = Object.create(null);
+    var match;
+
+    var hyper = source.match(HYPERLINK_RE);
+    if (hyper && hyper[1]) pushUnique(found, seen, hyper[1], classifyUrl);
+
+    MEDIA_URL_RE.lastIndex = 0;
+    while ((match = MEDIA_URL_RE.exec(source))) {
+      pushUnique(found, seen, match[0], classifyUrl);
+    }
+
+    BARE_MEDIA_RE.lastIndex = 0;
+    while ((match = BARE_MEDIA_RE.exec(source))) {
+      pushUnique(found, seen, match[1], classifyUrl);
+    }
+
+    FB_WATCH_RE.lastIndex = 0;
+    while ((match = FB_WATCH_RE.exec(source))) {
+      pushUnique(found, seen, match[0], classifyUrl);
+    }
+
+    YT_BARE_RE.lastIndex = 0;
+    while ((match = YT_BARE_RE.exec(source))) {
+      pushUnique(found, seen, match[0], classifyUrl);
+    }
+
+    IG_BARE_RE.lastIndex = 0;
+    while ((match = IG_BARE_RE.exec(source))) {
+      pushUnique(found, seen, match[0], classifyUrl);
+    }
+
+    if (extraUrls && extraUrls.length) {
+      extraUrls.forEach(function (item) {
+        pushUnique(found, seen, item, classifyUrl);
+      });
+    }
+
+    return found;
+  }
+
   function playerSize(info, verticalOverride) {
     var vertical = typeof verticalOverride === "boolean" ? verticalOverride : !!(info && info.vertical);
+    var platform = info && info.platform;
+    if (platform === "youtube" && !vertical) {
+      return { width: 480, height: 360, iframeWidth: 480, iframeHeight: 270 };
+    }
+    if (platform === "instagram" && !vertical) {
+      return { width: 380, height: 560, iframeWidth: 380, iframeHeight: 508 };
+    }
     if (info && info.kind === "post" && !vertical) {
       return { width: 380, height: 520, iframeWidth: 380, iframeHeight: 480 };
     }
@@ -471,9 +765,20 @@
     if (!info || !info.url) return "";
     var vertical = typeof options.vertical === "boolean" ? options.vertical : info.vertical;
     var forceKind = options.kind || info.kind;
-    var size = playerSize({ kind: forceKind, vertical: vertical }, vertical);
+    var size = playerSize({ kind: forceKind, vertical: vertical, platform: info.platform }, vertical);
     var width = options.width || size.iframeWidth;
     var height = options.height || size.iframeHeight;
+
+    if (info.platform === "youtube" && info.videoId) {
+      var qs = "autoplay=1&rel=0&modestbranding=1&playsinline=1";
+      if (info.start) qs += "&start=" + info.start;
+      return "https://www.youtube-nocookie.com/embed/" + info.videoId + "?" + qs;
+    }
+    if (info.platform === "instagram" && info.shortcode) {
+      var igPath = info.kind === "reel" ? "reel" : info.kind === "tv" ? "tv" : "p";
+      return "https://www.instagram.com/" + igPath + "/" + info.shortcode + "/embed/";
+    }
+
     var href = encodeURIComponent(embedHref(info));
     if (forceKind === "post") {
       return (
@@ -494,13 +799,60 @@
     );
   }
 
+  function parseHttpsUrl(value) {
+    try {
+      var url = new URL(String(value || ""));
+      if (url.protocol !== "https:") return null;
+      return url;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function isAllowedPageUrl(value) {
+    var url = parseHttpsUrl(value);
+    if (!url) return false;
+    return isFacebookHost(url.hostname) || isInstagramHost(url.hostname) || isYouTubeHost(url.hostname);
+  }
+
+  function isAllowedEmbedSrc(value) {
+    var url = parseHttpsUrl(value);
+    if (!url) return false;
+    var host = url.hostname.toLowerCase();
+    var path = url.pathname;
+    if (isFacebookHost(host)) {
+      if (/\/plugins\/(?:video|post)\.php$/i.test(path)) return true;
+      if (/\/(?:reel|reels|watch|videos?)\//i.test(path) || path === "/watch" || path === "/watch/") return true;
+      return false;
+    }
+    if (isInstagramHost(host)) {
+      return /\/(?:reel|p|tv)\/[A-Za-z0-9_-]+\/embed\/?$/i.test(path);
+    }
+    if (host === "www.youtube-nocookie.com" || host === "youtube-nocookie.com" || host === "www.youtube.com" || host === "youtube.com") {
+      return /^\/embed\/[A-Za-z0-9_-]{11}$/.test(path);
+    }
+    return false;
+  }
+
+  function isAllowedFetchUrl(value) {
+    var url = parseHttpsUrl(canonicalizeFacebookUrl(value) || value);
+    if (!url) return false;
+    return isFacebookHost(url.hostname);
+  }
+
   return {
     FB_HOST_RE: FB_HOST_RE,
     isFacebookUrl: isFacebookUrl,
     isFacebookHost: isFacebookHost,
+    isInstagramHost: isInstagramHost,
+    isYouTubeHost: isYouTubeHost,
     canonicalizeFacebookUrl: canonicalizeFacebookUrl,
     classifyFacebookUrl: classifyFacebookUrl,
+    classifyInstagramUrl: classifyInstagramUrl,
+    classifyYouTubeUrl: classifyYouTubeUrl,
+    classifyUrl: classifyUrl,
     extractFacebookLinks: extractFacebookLinks,
+    extractMediaLinks: extractMediaLinks,
     extractVideoId: extractVideoId,
     toCanonicalVideoUrl: toCanonicalVideoUrl,
     needsResolve: needsResolve,
@@ -512,5 +864,8 @@
     candidateUrls: candidateUrls,
     playerSize: playerSize,
     buildEmbedSrc: buildEmbedSrc,
+    isAllowedPageUrl: isAllowedPageUrl,
+    isAllowedEmbedSrc: isAllowedEmbedSrc,
+    isAllowedFetchUrl: isAllowedFetchUrl,
   };
 });

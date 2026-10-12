@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <title>表格 FB 悬浮播放 — 本地预览</title>
+    <title>表格视频悬浮播放 — 本地预览</title>
     <style>
       body {
         margin: 0;
@@ -78,6 +78,14 @@
       </div>
       <div class="cell">A3</div>
       <div class="cell">=HYPERLINK("https://www.facebook.com/watch/?v=10153231379946729","官方视频")</div>
+      <div class="cell">A4</div>
+      <div class="cell">
+        <a href="https://www.instagram.com/reel/CxY12abCD9/">instagram reel</a>
+      </div>
+      <div class="cell">A5</div>
+      <div class="cell">https://youtu.be/dQw4w9WgXcQ</div>
+      <div class="cell">A6</div>
+      <div class="cell">https://www.youtube.com/shorts/dQw4w9WgXcQ</div>
     </div>
     <p style="margin: 0 24px; color: #5f6368; font-size: 13px">
       下面是官方公开视频的嵌入预览（不经过扩展）。扩展安装后请到真实 Google 表格里试用。
@@ -90,13 +98,13 @@
     <script src="../src/urls.js"></script>
     <script>
       const api = window.FbSheetsPreview;
-      const info = api.classifyFacebookUrl(
+      const info = api.classifyUrl(
         "https://www.facebook.com/facebook/videos/10153231379946729/"
       );
       document.getElementById("preview").src = api.buildEmbedSrc(info, {});
       document.getElementById("formula").addEventListener("input", function () {
-        const found = api.extractFacebookLinks(this.innerText);
-        document.title = found[0] ? found[0].kind + " " + found[0].url : "无 FB 链接";
+        const found = api.extractMediaLinks(this.innerText);
+        document.title = found[0] ? found[0].platform + " " + found[0].url : "无可播放链接";
       });
     </script>
   </body>

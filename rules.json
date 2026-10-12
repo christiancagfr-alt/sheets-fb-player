@@ -26,14 +26,18 @@
       ]
     },
     "condition": {
+      "initiatorDomains": ["docs.google.com"],
       "requestDomains": [
         "www.facebook.com",
         "facebook.com",
         "web.facebook.com",
         "m.facebook.com",
-        "fb.watch",
-        "www.fb.com",
-        "fb.com"
+        "www.instagram.com",
+        "instagram.com",
+        "www.youtube.com",
+        "youtube.com",
+        "www.youtube-nocookie.com",
+        "youtube-nocookie.com"
       ],
       "resourceTypes": ["sub_frame"]
     }

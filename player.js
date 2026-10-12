@@ -2,9 +2,9 @@
   var api = window.FbSheetsPreview;
   var params = new URLSearchParams(location.search);
   var rawUrl = params.get("url") || "";
-  var info = api.classifyFacebookUrl(rawUrl);
+  var info = api.classifyUrl(rawUrl);
   if (!info) {
-    document.getElementById("title").textContent = "没有识别到 Facebook 链接";
+    document.getElementById("title").textContent = "没有识别到可播放链接";
     return;
   }
 
@@ -22,21 +22,27 @@
   function apply() {
     var size = api.playerSize(info, vertical);
     badge.textContent = info.label || "视频";
-    title.textContent = watchMode === "page" ? "Facebook 页面" : vertical ? "竖屏播放" : "横屏播放";
+    var platform = info.platform || "facebook";
+    if (platform === "youtube") title.textContent = vertical ? "YouTube Shorts" : "YouTube";
+    else if (platform === "instagram") title.textContent = vertical ? "Instagram 竖屏" : "Instagram";
+    else title.textContent = watchMode === "page" ? "Facebook 页面" : vertical ? "竖屏播放" : "横屏播放";
+    pageBtn.style.display = platform === "facebook" ? "" : "none";
     urlEl.textContent = info.url;
-    urlEl.href = info.url;
+    if (api.isAllowedPageUrl(info.url)) urlEl.href = info.url;
+    else urlEl.removeAttribute("href");
     pageBtn.classList.toggle("is-on", watchMode === "page");
     verticalBtn.classList.toggle("is-on", vertical);
-    if (watchMode === "page") {
-      frame.src = api.pageHref(info) || info.url;
-    } else {
-      frame.src = api.buildEmbedSrc(info, {
-        kind: "video",
-        vertical: vertical,
-        width: size.iframeWidth,
-        height: size.iframeHeight,
-      });
-    }
+    var src =
+      watchMode === "page"
+        ? api.pageHref(info) || info.url
+        : api.buildEmbedSrc(info, {
+            kind: "video",
+            vertical: vertical,
+            width: size.iframeWidth,
+            height: size.iframeHeight,
+          });
+    if (api.isAllowedEmbedSrc(src)) frame.src = src;
+    else frame.src = "about:blank";
   }
 
   pageBtn.addEventListener("click", function () {
@@ -48,7 +54,8 @@
     apply();
   });
   document.getElementById("openBtn").addEventListener("click", function () {
-    window.open(api.embedHref(info) || info.url, "_blank", "noopener");
+    var openUrl = api.embedHref(info) || info.url;
+    if (api.isAllowedPageUrl(openUrl)) window.open(openUrl, "_blank", "noopener");
   });
 
   apply();

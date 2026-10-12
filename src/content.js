@@ -51,6 +51,8 @@
     try {
       chrome.storage.sync.get(DEFAULTS, function (stored) {
         settings = Object.assign({}, DEFAULTS, stored || {});
+        settings.hoverDelayMs = Math.max(0, Math.min(2000, Number(settings.hoverDelayMs) || 450));
+        if (settings.playerMode !== "window") settings.playerMode = "overlay";
         if (!settings.enabled) hideAll();
       });
     } catch (err) {
@@ -65,23 +67,23 @@
         settings[key] = changes[key].newValue;
       }
     });
+    settings.hoverDelayMs = Math.max(0, Math.min(2000, Number(settings.hoverDelayMs) || 450));
+    if (settings.playerMode !== "window") settings.playerMode = "overlay";
     if (!settings.enabled) hideAll();
   }
 
   function ensureUi() {
     if (shadow && host && document.contains(host)) return;
-    host = document.getElementById(HOST_ID);
-    if (host && !document.contains(host)) host.remove();
-    if (!host || !document.contains(host)) {
-      host = document.createElement("div");
-      host.id = HOST_ID;
-      host.style.cssText =
-        "position:fixed;left:0;top:0;width:0;height:0;z-index:2147483646;pointer-events:none;";
-      (document.documentElement || document.body).appendChild(host);
-    }
-    shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
+    var existing = document.getElementById(HOST_ID);
+    if (existing) existing.remove();
+    host = document.createElement("div");
+    host.id = HOST_ID;
+    host.style.cssText =
+      "position:fixed;left:0;top:0;width:0;height:0;z-index:2147483646;pointer-events:none;";
+    (document.documentElement || document.body).appendChild(host);
+    shadow = host.attachShadow({ mode: "closed" });
     shadow.innerHTML =
-      '<button type="button" class="fbsp-chip fbsp-hidden" id="chip">▶ 播放 Facebook</button>' +
+      '<button type="button" class="fbsp-chip fbsp-hidden" id="chip">▶ 播放</button>' +
       '<div class="fbsp-player fbsp-hidden" id="player">' +
       '  <div class="fbsp-header" id="header">' +
       '    <span class="fbsp-badge" id="badge">Reels</span>' +
@@ -91,7 +93,7 @@
       '      <button type="button" class="fbsp-btn" id="verticalBtn" title="竖屏 / 横屏">▯</button>' +
       '      <button type="button" class="fbsp-btn" id="pinBtn" title="固定窗口">📌</button>' +
       '      <button type="button" class="fbsp-btn" id="copyBtn" title="复制链接">复制</button>' +
-      '      <button type="button" class="fbsp-btn" id="openBtn" title="在 Facebook 打开">↗</button>' +
+      '      <button type="button" class="fbsp-btn" id="openBtn" title="在新标签打开">↗</button>' +
       '      <button type="button" class="fbsp-btn" id="popBtn" title="弹出独立窗口">窗</button>' +
       '      <button type="button" class="fbsp-btn fbsp-btn-close" id="closeBtn" title="关闭">✕</button>' +
       "    </div>" +
@@ -122,9 +124,9 @@
     loadingEl = shadow.getElementById("loading");
     frameEl.addEventListener("load", function () {
       if (!frameEl.src || frameEl.src === "about:blank") return;
-      if (frameEl.src.indexOf("plugins/video.php") === -1) return;
+      var delay = frameEl.src.indexOf("plugins/video.php") !== -1 ? 1600 : 400;
       clearTimeout(loadingTimer);
-      loadingTimer = setTimeout(hideLoading, 1600);
+      loadingTimer = setTimeout(hideLoading, delay);
     });
 
     shadow.getElementById("closeBtn").addEventListener("click", function () {
@@ -153,7 +155,8 @@
     });
     shadow.getElementById("openBtn").addEventListener("click", function () {
       if (!currentInfo) return;
-      window.open(api.pageHref(currentInfo) || currentInfo.url, "_blank", "noopener");
+      var openUrl = api.pageHref(currentInfo) || currentInfo.url;
+      if (api.isAllowedPageUrl(openUrl)) window.open(openUrl, "_blank", "noopener");
     });
     shadow.getElementById("popBtn").addEventListener("click", function () {
       if (!currentInfo) return;
@@ -187,10 +190,27 @@
     hideChip();
   }
 
+  function setFrameSrc(src) {
+    if (!frameEl) return;
+    if (!src || src === "about:blank" || !api.isAllowedEmbedSrc(src)) {
+      frameEl.removeAttribute("src");
+      frameEl.src = "about:blank";
+      return;
+    }
+    frameEl.src = src;
+  }
+
+  function setLinkHref(el, href) {
+    if (!el) return;
+    el.textContent = href || "";
+    if (href && api.isAllowedPageUrl(href)) el.setAttribute("href", href);
+    else el.removeAttribute("href");
+  }
+
   function hidePlayer() {
     if (!playerEl) return;
     playerEl.classList.add("fbsp-hidden");
-    if (frameEl) frameEl.src = "about:blank";
+    setFrameSrc("about:blank");
     hideLoading();
     lastPlayedKey = "";
     if (!pinned) currentInfo = null;
@@ -277,8 +297,12 @@
   }
 
   function firstLinkFromSnapshot(snapshot) {
-    var found = api.extractFacebookLinks(snapshot.text, snapshot.links);
+    var found = api.extractMediaLinks(snapshot.text, snapshot.links);
     return found[0] || null;
+  }
+
+  function platformOf(info) {
+    return (info && info.platform) || "facebook";
   }
 
   function playKey(info, kind, vertical, mode) {
@@ -287,22 +311,35 @@
 
   function frameSrcFor(info) {
     var href = api.embedHref(info);
-    if (!href) return "";
-    if (watchMode === "page") return href;
+    if (!href && platformOf(info) === "facebook") return "";
+    if (watchMode === "page" && platformOf(info) === "facebook") return href;
     return api.buildEmbedSrc(info, {
-      kind: "video",
+      kind: platformOf(info) === "facebook" ? "video" : info.kind,
       vertical: currentVertical,
       width: api.playerSize(info, currentVertical).iframeWidth,
       height: api.playerSize(info, currentVertical).iframeHeight,
     });
   }
 
+  function playerTitle(info) {
+    var platform = platformOf(info);
+    if (platform === "youtube") return currentVertical ? "YouTube Shorts" : "YouTube";
+    if (platform === "instagram") return currentVertical ? "Instagram 竖屏" : "Instagram";
+    if (watchMode === "page") return "Facebook 页面";
+    return currentVertical ? "竖屏播放" : "横屏播放";
+  }
+
   function renderPlayer(info, rect, forceReload) {
     ensureUi();
     currentInfo = info;
-    if (currentKind == null || currentKind === "post") currentKind = info.kind === "post" ? "video" : info.kind;
+    if (currentKind == null || (currentKind === "post" && platformOf(info) === "facebook")) {
+      currentKind = info.kind === "post" && platformOf(info) === "facebook" ? "video" : info.kind;
+    }
     if (currentVertical == null) currentVertical = info.vertical;
-    var size = api.playerSize({ kind: currentKind, vertical: currentVertical }, currentVertical);
+    var size = api.playerSize(
+      { kind: currentKind, vertical: currentVertical, platform: platformOf(info) },
+      currentVertical
+    );
     var keepPos =
       playerEl &&
       !playerEl.classList.contains("fbsp-hidden") &&
@@ -324,29 +361,30 @@
     hideChip();
 
     badgeEl.textContent = info.label || "视频";
-    titleEl.textContent = watchMode === "page" ? "Facebook 页面" : currentVertical ? "竖屏播放" : "横屏播放";
+    badgeEl.className = "fbsp-badge fbsp-badge-" + platformOf(info);
+    titleEl.textContent = playerTitle(info);
     var playing = api.embedHref(info) || info.url;
-    urlEl.textContent = playing;
-    urlEl.href = playing;
+    setLinkHref(urlEl, playing);
     pinBtn.classList.toggle("is-on", pinned);
     verticalBtn.classList.toggle("is-on", currentVertical);
     pageBtn.classList.toggle("is-on", watchMode === "page");
+    pageBtn.style.display = platformOf(info) === "facebook" ? "" : "none";
 
     var key = playKey(info, currentKind, currentVertical, watchMode);
-    if (!forceReload && key === lastPlayedKey && frameEl.src && frameEl.src.indexOf("facebook.com") !== -1) {
+    if (!forceReload && key === lastPlayedKey && frameEl.src && frameEl.src !== "about:blank") {
       return;
     }
     lastPlayedKey = key;
     frameEl.style.height = size.iframeHeight + "px";
     var src = frameSrcFor(info);
-    if (!src || src === "about:blank") {
+    if (!src || src === "about:blank" || !api.isAllowedEmbedSrc(src)) {
       showLoading();
-      frameEl.src = "about:blank";
+      setFrameSrc("about:blank");
       return;
     }
     if (frameEl.src !== src) {
       showLoading();
-      frameEl.src = src;
+      setFrameSrc(src);
     }
   }
 
@@ -359,7 +397,7 @@
       return;
     }
     lastRect = { left: target.right + 8, top: target.top };
-    chipEl.textContent = "▶ 播放 " + (info.label || "Facebook");
+    chipEl.textContent = "▶ 播放 " + (info.label || "视频");
     chipEl.style.left = Math.min(target.right + 8, window.innerWidth - 140) + "px";
     chipEl.style.top = Math.max(8, target.top - 2) + "px";
     chipEl.classList.remove("fbsp-hidden");
@@ -367,7 +405,11 @@
 
   function openPlayerWindow(info) {
     var size = api.playerSize(
-      { kind: currentKind || info.kind, vertical: currentVertical == null ? info.vertical : currentVertical },
+      {
+        kind: currentKind || info.kind,
+        vertical: currentVertical == null ? info.vertical : currentVertical,
+        platform: platformOf(info),
+      },
       currentVertical == null ? info.vertical : currentVertical
     );
     chrome.runtime.sendMessage({
@@ -383,7 +425,7 @@
 
   function playInfo(info, rect, source) {
     if (!info || !settings.enabled) return;
-    currentKind = info.kind === "post" ? "video" : info.kind;
+    currentKind = info.kind === "post" && platformOf(info) === "facebook" ? "video" : info.kind;
     currentVertical = info.vertical;
     watchMode = "plugin";
     currentInfo = info;
@@ -392,9 +434,10 @@
       return;
     }
     renderPlayer(info, rect, true);
+    if (platformOf(info) !== "facebook") return;
     chrome.runtime.sendMessage({ type: "resolve-facebook-url", url: info.url }, function (result) {
       if (chrome.runtime.lastError) return;
-      if (!result || !result.url) return;
+      if (!result || !result.url || !api.isAllowedPageUrl(result.url)) return;
       if (!currentInfo || (currentInfo.originalUrl || currentInfo.url) !== info.url) return;
       var resolved = api.classifyFacebookUrl(result.url) || info;
       resolved.originalUrl = info.url;
@@ -442,24 +485,24 @@
     handleSnapshot(snapshot, "select", getSelectionRect());
   }
 
-  function findFacebookUrlFromNode(node) {
+  function findMediaUrlFromNode(node) {
     if (!node || node.nodeType !== 1) return null;
     if (host && (node === host || host.contains(node))) return null;
     var a = node.closest ? node.closest("a[href]") : null;
     if (a) {
       var href = a.dataset.sheetsFormulaBarTextLink || a.href;
-      var info = api.classifyFacebookUrl(href);
+      var info = api.classifyUrl(href);
       if (info) return info;
     }
     var attrs = ["href", "data-url", "data-href", "aria-label", "title"];
     for (var i = 0; i < attrs.length; i++) {
       var value = node.getAttribute && node.getAttribute(attrs[i]);
-      var found = api.extractFacebookLinks(value || "");
+      var found = api.extractMediaLinks(value || "");
       if (found[0]) return found[0];
     }
     var text = (node.innerText || node.textContent || "").trim();
     if (text && text.length < 500) {
-      found = api.extractFacebookLinks(text);
+      found = api.extractMediaLinks(text);
       if (found[0]) return found[0];
     }
     return null;
@@ -468,7 +511,7 @@
   function onPointerOver(event) {
     if (!settings.enabled || !settings.playOnHover) return;
     if (host && (event.target === host || host.contains(event.target))) return;
-    var info = findFacebookUrlFromNode(event.target);
+    var info = findMediaUrlFromNode(event.target);
     if (!info) return;
     hoverUrl = info.url;
     clearTimeout(hoverTimer);
@@ -481,7 +524,7 @@
   function onPointerOut(event) {
     if (!hoverTimer) return;
     var next = event.relatedTarget;
-    if (next && findFacebookUrlFromNode(next)) return;
+    if (next && findMediaUrlFromNode(next)) return;
     if (host && next && (next === host || host.contains(next))) return;
     clearTimeout(hoverTimer);
     hoverTimer = null;

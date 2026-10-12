@@ -21,8 +21,11 @@ function readForm() {
   fields.forEach(function (field) {
     const el = document.getElementById(field.id);
     if (field.type === "bool") data[field.id] = el.checked;
-    else if (field.type === "number") data[field.id] = Number(el.value) || 0;
-    else data[field.id] = el.value;
+    else if (field.type === "number") {
+      data[field.id] = Math.max(0, Math.min(2000, Number(el.value) || 0));
+    } else if (field.id === "playerMode") {
+      data[field.id] = el.value === "window" ? "window" : "overlay";
+    } else data[field.id] = el.value;
   });
   return data;
 }

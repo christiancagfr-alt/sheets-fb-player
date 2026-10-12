@@ -7,3 +7,5 @@ _metadata/
 *.zip
 .idea/
 .vscode/
+docs-local/
+SECURITY-AUDIT-LOCAL.md

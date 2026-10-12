@@ -1,19 +1,29 @@
-# 表格 FB 悬浮播放
+# 表格视频悬浮播放
 
-Chrome 扩展：在 **Google 表格** 里用鼠标选中（或悬停）Facebook / Reels 链接时，弹出悬浮窗播放视频。
+Chrome 扩展：在 **Google 表格** 里用鼠标选中（或悬停）Facebook、Instagram、YouTube 链接时，弹出悬浮窗播放视频。
+
+## 功能
+
+- 在 Google 表格中选中单元格，自动识别并悬浮播放视频
+- 悬停在表格里的蓝色链接上，延迟后播放
+- 支持 Facebook Reels / 视频、Instagram Reels / 帖子 / IGTV、YouTube 视频 / Shorts
+- 识别 `=HYPERLINK("https://...")`、带追踪参数的链接、Google 跳转包装链接
+- Facebook 的 `主页ID_贴文ID`、`fb.watch`、`/share/` 会先解析成可嵌入地址再播放
+- 竖屏 / 横屏切换、拖动、缩放、固定窗口
+- 可改成独立小窗口播放（扩展图标设置）
+- 快捷键 `Alt + V` 播放当前单元格，`Esc` 关闭
+- 使用各平台官方嵌入播放器，不下载、不破解视频
 
 支持常见链接：
 
-- `facebook.com/reel/...`、`facebook.com/reels/...`
-- `facebook.com/watch?v=...`、`facebook.com/.../videos/...`
-- `facebook.com/{主页ID}_{贴文ID}`
-- `facebook.com/share/r/...`、`facebook.com/share/v/...`
-- `fb.watch/...`、`m.facebook.com/...`
-- 单元格里的 `=HYPERLINK("https://www.facebook.com/...")`
+- Facebook：`facebook.com/reel/...`、`/watch?v=`、`/.../videos/`、`{主页ID}_{贴文ID}`、`/share/r/`、`fb.watch/...`
+- Instagram：`instagram.com/reel/...`、`/p/...`、`/tv/...`
+- YouTube：`youtube.com/watch?v=`、`youtu.be/...`、`youtube.com/shorts/...`
+- 单元格里的 `=HYPERLINK("https://...")`
 
 ## 下载
 
-从 [Releases](https://github.com/secure-artifacts/sheets-fb-player/releases) 页面下载最新版本的 zip。
+从 [Releases](https://github.com/christiancagfr-alt/sheets-fb-player/releases) 页面下载最新版本的 zip。
 
 ## 安装（开发者模式）
 
@@ -23,7 +33,7 @@ Chrome 扩展：在 **Google 表格** 里用鼠标选中（或悬停）Facebook 
 4. 右上角打开 **开发者模式**
 5. 点击 **加载已解压的扩展程序**
 6. 选择解压后的文件夹（里面直接就是 `manifest.json`）
-7. 打开任意 Google 表格，**刷新页面**后选中含 Facebook 链接的单元格
+7. 打开任意 Google 表格，**刷新页面**后选中含 Facebook / Instagram / YouTube 链接的单元格
 
 Chrome 顶部可能出现开发者模式提示条，这是「加载已解压扩展」的正常现象。
 
@@ -32,7 +42,7 @@ Chrome 顶部可能出现开发者模式提示条，这是「加载已解压扩�
 下载后，可使用 GitHub CLI 验证文件来源：
 
 ```bash
-gh attestation verify ./sheets-fb-player-v1.1.5.zip --repo secure-artifacts/sheets-fb-player
+gh attestation verify ./sheets-fb-player-v1.2.0.zip --repo christiancagfr-alt/sheets-fb-player
 ```
 
 验证成功表示该软件确实由官方 CI 构建。
@@ -41,8 +51,8 @@ gh attestation verify ./sheets-fb-player-v1.1.5.zip --repo secure-artifacts/shee
 
 | 操作 | 效果 |
 | --- | --- |
-| 单击含 FB 链接的单元格 | 右侧弹出悬浮播放器 |
-| 悬停在可点击的 FB 链接 / 链接气泡上 | 延迟后播放 |
+| 单击含视频链接的单元格 | 右侧弹出悬浮播放器 |
+| 悬停在可点击的链接 / 链接气泡上 | 延迟后播放 |
 | 拖动播放器顶栏 | 移动窗口 |
 | 右下角拖动 | 缩放 |
 | `Alt + V` | 强制播放当前单元格 |
@@ -53,11 +63,12 @@ gh attestation verify ./sheets-fb-player-v1.1.5.zip --repo secure-artifacts/shee
 
 ## 播放限制
 
-悬浮窗使用 Facebook 官方嵌入播放器，**不会破解或下载视频**：
+悬浮窗使用各平台官方嵌入播放器，**不会破解或下载视频**：
 
-- 公开 Reels / 视频一般可以直接播
-- 表格里的 `主页ID_贴文ID` 链接会先解析成真正的 Reels 地址再播放
-- 非公开内容可能无法嵌入
+- 公开 Facebook Reels / Instagram / YouTube 视频一般可以直接播
+- 表格里的 Facebook `主页ID_贴文ID` 链接会先解析成真正的 Reels 地址再播放
+- YouTube 使用 `youtube-nocookie.com/embed`，Instagram 使用 `/embed/`
+- 非公开内容、关闭嵌入的视频可能无法播放
 
 ## 如何发布新版本
 
@@ -79,13 +90,13 @@ git push origin main
 版本号格式为 `v主版本.次版本.修订版本`，例如 `v1.0.0`、`v1.1.0`、`v2.0.0`。
 
 ```bash
-git tag -a v1.1.5 -m "Release version 1.1.5"
+git tag -a v1.2.0 -m "Release version 1.2.0"
 ```
 
 #### 3. 推送 Tag 触发自动构建
 
 ```bash
-git push origin v1.1.5
+git push origin v1.2.0
 ```
 
 推送后，GitHub Actions 会自动：
@@ -114,10 +125,10 @@ git push origin v1.1.5
 3. 删除失败的 tag 并重新创建：
 
 ```bash
-git tag -d v1.1.5
-git push origin :refs/tags/v1.1.5
-git tag -a v1.1.5 -m "Release version 1.1.5"
-git push origin v1.1.5
+git tag -d v1.2.0
+git push origin :refs/tags/v1.2.0
+git tag -a v1.2.0 -m "Release version 1.2.0"
+git push origin v1.2.0
 ```
 
 ## 本地开发

@@ -39,6 +39,14 @@
   letter-spacing: 0.02em;
 }
 
+.fbsp-badge-instagram {
+  background: #e1306c;
+}
+
+.fbsp-badge-youtube {
+  background: #ff0000;
+}
+
 .fbsp-title {
   flex: 1 1 auto;
   overflow: hidden;

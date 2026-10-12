@@ -1,8 +1,8 @@
 {
   "name": "sheets-fb-player",
-  "version": "1.1.5",
+  "version": "1.2.0",
   "private": true,
-  "description": "在 Google 表格中选中或悬停 Facebook / Reels 链接时，悬浮播放视频。",
+  "description": "在 Google 表格中选中或悬停 Facebook / Instagram / YouTube 链接时，悬浮播放视频。",
   "scripts": {
     "build": "node scripts/build.js",
     "test": "node test/test_urls.js"
