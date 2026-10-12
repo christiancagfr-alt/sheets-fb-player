@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "表格视频悬浮播放",
   "short_name": "悬浮播放",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "在 Google 表格中选中或悬停 Facebook / Instagram / YouTube 链接时，悬浮播放视频。",
   "icons": {
     "16": "icons/icon16.png",
@@ -63,7 +63,7 @@
   "web_accessible_resources": [
     {
       "resources": ["src/content.css", "player.html", "src/urls.js", "player.js"],
-      "matches": ["https://docs.google.com/spreadsheets/*"]
+      "matches": ["https://docs.google.com/*"]
     }
   ],
   "content_security_policy": {

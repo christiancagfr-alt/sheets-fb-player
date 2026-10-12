@@ -43,7 +43,7 @@ Chrome 顶部可能出现开发者模式提示条，这是「加载已解压扩�
 下载后，可使用 GitHub CLI 验证文件来源：
 
 ```bash
-gh attestation verify ./sheets-fb-player-v1.3.0.zip --repo christiancagfr-alt/sheets-fb-player
+gh attestation verify ./sheets-fb-player-v1.3.1.zip --repo christiancagfr-alt/sheets-fb-player
 ```
 
 验证成功表示该软件确实由官方 CI 构建。
@@ -74,7 +74,7 @@ Chrome 对「加载已解压的扩展」不会自己覆盖文件，所以更新�
 4. 解压后**覆盖原来加载扩展的那个文件夹**
 5. 点通知或弹窗进入安装说明页，再点「重新加载扩展」
 
-对方需要先手动装上 **v1.3.0 或更高**，之后你再发版才会自动提示。可在弹窗里关闭「自动检查更新」或「发现新版本时自动下载」。
+对方需要先手动装上 **v1.3.1 或更高**，之后你再发版才会自动提示。可在弹窗里关闭「自动检查更新」或「发现新版本时自动下载」。
 
 ## 播放限制
 
@@ -105,13 +105,13 @@ git push origin main
 版本号格式为 `v主版本.次版本.修订版本`，例如 `v1.0.0`、`v1.1.0`、`v2.0.0`。
 
 ```bash
-git tag -a v1.3.0 -m "Release version 1.3.0"
+git tag -a v1.3.1 -m "Release version 1.3.1"
 ```
 
 #### 3. 推送 Tag 触发自动构建
 
 ```bash
-git push origin v1.3.0
+git push origin v1.3.1
 ```
 
 推送后，GitHub Actions 会自动：
@@ -140,10 +140,10 @@ git push origin v1.3.0
 3. 删除失败的 tag 并重新创建：
 
 ```bash
-git tag -d v1.3.0
-git push origin :refs/tags/v1.3.0
-git tag -a v1.3.0 -m "Release version 1.3.0"
-git push origin v1.3.0
+git tag -d v1.3.1
+git push origin :refs/tags/v1.3.1
+git tag -a v1.3.1 -m "Release version 1.3.1"
+git push origin v1.3.1
 ```
 
 ## 本地开发
