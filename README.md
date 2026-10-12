@@ -42,7 +42,7 @@ Chrome 顶部可能出现开发者模式提示条，这是「加载已解压扩�
 下载后，可使用 GitHub CLI 验证文件来源：
 
 ```bash
-gh attestation verify ./sheets-fb-player-v1.2.0.zip --repo christiancagfr-alt/sheets-fb-player
+gh attestation verify ./sheets-fb-player-v1.2.1.zip --repo christiancagfr-alt/sheets-fb-player
 ```
 
 验证成功表示该软件确实由官方 CI 构建。
@@ -90,13 +90,13 @@ git push origin main
 版本号格式为 `v主版本.次版本.修订版本`，例如 `v1.0.0`、`v1.1.0`、`v2.0.0`。
 
 ```bash
-git tag -a v1.2.0 -m "Release version 1.2.0"
+git tag -a v1.2.1 -m "Release version 1.2.1"
 ```
 
 #### 3. 推送 Tag 触发自动构建
 
 ```bash
-git push origin v1.2.0
+git push origin v1.2.1
 ```
 
 推送后，GitHub Actions 会自动：
@@ -125,10 +125,10 @@ git push origin v1.2.0
 3. 删除失败的 tag 并重新创建：
 
 ```bash
-git tag -d v1.2.0
-git push origin :refs/tags/v1.2.0
-git tag -a v1.2.0 -m "Release version 1.2.0"
-git push origin v1.2.0
+git tag -d v1.2.1
+git push origin :refs/tags/v1.2.1
+git tag -a v1.2.1 -m "Release version 1.2.1"
+git push origin v1.2.1
 ```
 
 ## 本地开发
